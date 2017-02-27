@@ -3,6 +3,26 @@
 A Clojure library for JSON-RPC 2.0 protocol
 
 ## Usage
+Leiningen/Boot
+```
+[clj-jsonrpc "0.1.1-dev"]  ;; use the latest version number
+```
+
+Gradle
+```
+compile "clj-jsonrpc:clj-jsonrpc:${version-number}"
+```
+
+Maven
+```
+<dependency>
+  <groupId>clj-jsonrpc</groupId>
+  <artifactId>clj-jsonrpc</artifactId>
+  <version>${version-number}</version>
+</dependency>
+```
+
+Demo Usage
 
 ```
 (def rpc-handlers {
