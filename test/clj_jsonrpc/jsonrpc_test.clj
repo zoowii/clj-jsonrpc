@@ -6,7 +6,7 @@
   (:import (java.io IOException)))
 
 (def rpc-handlers {
-               :sum (fn [req] (apply + (get req "params")))
+               :sum (fn [& params] (apply + params))
                })
 
 (def rpc-conn (jsonrpc/create-connection

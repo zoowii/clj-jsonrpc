@@ -100,15 +100,18 @@
   [conn req]
   (let [method (get req "method")
         jsonrpc-version (get req "jsonrpc")
-        id (get req "id")]
-    (let [handler (get (:handlers @conn) method)]
-      (if handler
-        (future (try
-                  (let [res (handler req)]
-                    (make-rpc-response conn (handler req) id))
-                  (catch Exception e
-                    (make-error-response conn (.getMessage e) (:internal-error error-codes) id))))
-        (make-error-response conn (str "Can't find method handler " method) (:method-not-found error-codes) nil)))))
+        id (get req "id")
+        params (get req "params")]
+    (if (or (seq? params) (vector? params))
+      (let [handler (get (:handlers @conn) method)]
+        (if handler
+          (future (try
+                    (let [res (apply handler params)]
+                      (make-rpc-response conn res id))
+                    (catch Exception e
+                      (make-error-response conn (.getMessage e) (:internal-error error-codes) id))))
+          (make-error-response conn (str "Can't find method handler " method) (:method-not-found error-codes) id)))
+      (make-error-response conn (:invalid-params error-msgs) (:invalid-params error-codes) id))))
 
 (defn- process-batch-rpc-requests
   [conn requests]
@@ -151,4 +154,4 @@
   (when-let [starter-fn (:starter-fn @conn)]
     ((:starter-fn @conn))))
 
-;;; TODO: params error error codes, http wrapper, websocket wrapper, etc.
+;;; TODO: http wrapper, websocket wrapper, etc.

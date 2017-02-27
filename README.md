@@ -6,7 +6,7 @@ A Clojure library for JSON-RPC 2.0 protocol
 
 ```
 (def rpc-handlers {
-               :sum (fn [req] (apply + (get req "params")))
+               :sum (fn [& params] (apply + params))
                })
 
 (def rpc-conn (jsonrpc/create-connection
@@ -47,7 +47,7 @@ A Clojure library for JSON-RPC 2.0 protocol
 (defn run-demo-server [& args]
   (println "hello")
   (reset! server (run-server #'async-handler {:port 8080})))
-  
+
 ```
 
 ## License
