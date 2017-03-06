@@ -1,8 +1,10 @@
 (ns clj-jsonrpc.jsonrpc-test
   (:require [clojure.test :refer :all]
             [clj-jsonrpc.jsonrpc :as jsonrpc]
+            [clj-jsonrpc.server :as rpc-server]
             [clojure.data.json :as json])
-  (:use org.httpkit.server)
+  (:use org.httpkit.server
+        ring.adapter.jetty)
   (:import (java.io IOException)))
 
 (def rpc-handlers {
@@ -20,7 +22,7 @@
                   "jsonrpc res writer"
                   (send! (:channel ctx) (json/write-str msg)))))
 
-(jsonrpc/bind-rpc-handlers rpc-conn rpc-handlers)
+(jsonrpc/defhandlers rpc-conn rpc-handlers)
 
 (defn async-handler [req]
   (with-channel req channel
@@ -45,9 +47,22 @@
     (reset! server nil)))
 
 (defn run-demo-server [& args]
-  (println "hello")
+  (println "hello, http-kit demo")
   (reset! server (run-server #'async-handler {:port 8080})))
 
 (deftest jsonrpc-http-demo-test1
   (do
     (run-demo-server [])))
+
+
+;; another demo using ring-server
+(jsonrpc/defhandlers rpc-server/rpc-conn
+                     rpc-handlers)
+
+(defn run-jetty-demo-server [& args]
+  (println "hello, jetty demo")
+  (run-jetty #'rpc-server/app {:port 8080}))
+
+(deftest jsonrpc-http-demo-test2
+  (do
+    (run-jetty-demo-server [])))

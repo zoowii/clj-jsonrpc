@@ -56,7 +56,6 @@
           :message-writer msg-writer
           :request-reactor-register req-reactor-register         ;; register request reactor fn to connection
           :starter-fn starter-fn
-          :handlers {}
           })))
 
 (defn set-rpc-reader
@@ -66,15 +65,6 @@
 (defn set-rpc-writer
   [conn msg-writer]
   (swap! conn assoc :message-writer msg-writer))
-
-(defn bind-rpc-listener
-  [conn method handler]
-  (swap! conn assoc :handlers (assoc (:handlers @conn) method handler)))
-
-(defn bind-rpc-handlers
-  [conn handlers]
-  (doseq [p handlers]
-    (bind-rpc-listener conn (name (first p)) (second p))))
 
 (defn send-notification
   [conn ctx notification]
@@ -96,6 +86,31 @@
   [conn result id]
   {"result" result "jsonrpc" jsonrpc-version "id" id})
 
+(defmulti dispatch
+          "Dispatches requests by method name"
+          (fn [conn method params id] {:context conn :method (name method)}))
+
+(defmethod dispatch :default
+  [conn method params id]
+  (make-error-response conn (str "Can't find method handler " method) (:method-not-found error-codes) id))
+
+(defn defhandler
+  [conn method-name handler]
+  "bind rpc-handler to rpc request method"
+  (defmethod dispatch {:context conn :method (name method-name)}
+    [conn method params id]
+    (future (try
+              (let [res (apply handler params)]
+                (make-rpc-response conn res id))
+              (catch Exception e
+                (make-error-response conn (.getMessage e) (:internal-error error-codes) id))))))
+
+(defn defhandlers
+  [conn handlers]
+  "bind handlers"
+  (doseq [p handlers]
+    (defhandler conn (first p) (second p))))
+
 (defn- process-single-rpc-request
   [conn req]
   (let [method (get req "method")
@@ -103,14 +118,7 @@
         id (get req "id")
         params (get req "params")]
     (if (or (seq? params) (vector? params))
-      (let [handler (get (:handlers @conn) method)]
-        (if handler
-          (future (try
-                    (let [res (apply handler params)]
-                      (make-rpc-response conn res id))
-                    (catch Exception e
-                      (make-error-response conn (.getMessage e) (:internal-error error-codes) id))))
-          (make-error-response conn (str "Can't find method handler " method) (:method-not-found error-codes) id)))
+      (dispatch conn method params id)
       (make-error-response conn (:invalid-params error-msgs) (:invalid-params error-codes) id))))
 
 (defn- process-batch-rpc-requests
@@ -154,4 +162,4 @@
   (when-let [starter-fn (:starter-fn @conn)]
     ((:starter-fn @conn))))
 
-;;; TODO: http wrapper, websocket wrapper, etc.
+
