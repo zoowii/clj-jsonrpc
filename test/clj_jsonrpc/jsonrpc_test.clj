@@ -7,9 +7,7 @@
         ring.adapter.jetty)
   (:import (java.io IOException)))
 
-(def rpc-handlers {
-               :sum (fn [& params] (apply + params))
-               })
+(def rpc-handlers {:sum (fn [& params] (apply + params))})
 
 (def rpc-conn (jsonrpc/create-connection
                 (fn [ctx]
@@ -33,11 +31,9 @@
                                             rpc-conn
                                             (jsonrpc/read-rpc-message rpc-conn ctx))]
                            (jsonrpc/send-rpc-response rpc-conn ctx
-                                                      (jsonrpc/rpc-result rpc-result))
-                           )
+                                                      (jsonrpc/rpc-result rpc-result)))
                          (catch Exception e
                            (jsonrpc/send-error rpc-conn ctx (.getMessage e))))))))
-
 
 (defonce server (atom nil))
 
@@ -53,7 +49,6 @@
 (deftest jsonrpc-http-demo-test1
   (do
     (run-demo-server [])))
-
 
 ;; another demo using ring-server
 (jsonrpc/defhandlers rpc-server/rpc-conn
